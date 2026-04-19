@@ -1,22 +1,21 @@
 # MRI Hackaton
 
-_LC 2026-04-16_
+_LC 2026-04-19_
 
-# Abbreviations
-- venv : python virtual environment
-- dir : directory, folder
-- sub : subject
-- sw : software
 
 # Organization of code + data
 The main principle of working on storm is to have
 - scripts in `/data00/[yourname]/[projectName]`
 - data in `/data03` (or any other windoze disk)
 
+<br>
+
 `data00` 
   - is the only disk physically connected to storm, and it's the fastest, but it's also the smallest, and we should _not_ store data there. 
   - is not backed-up, therefore I strongly advise you, when you start a project, to also create a new github repo in `/data00/[yourname]/[projectName]` and link it to the remote repo on github
   - github is perfect since scripts are small - and even if you need to place some images, e.g. some MNI.nii.gz, it's ok. For big files that you might want to (temporarily) have in `data00`, there is `.gitignore`
+
+<br>
 
 `data[03-06]`
   - are bigger (if there is still space available), but much slower
@@ -28,7 +27,7 @@ Where to store the preprocessed data? For the time being, we will choose to keep
 
 
 # Environment setup
-- Make sure fsl is in the $PATH
+- Make sure fsl is in the `$PATH`
   - `which fsl`
   - if it's not in the path, you need to add the following to yourr `~/.bashrc` file
   - `ls -lha` is better than `ls`, and `tree` is also very useful to see the structure of subfolders
@@ -68,12 +67,12 @@ export FSLDIR PATH
 # 01. Bidsification with bidscoin
 [ref to GUTs tut 05_full_pipeline](https://github.com/leonardocerliani/GUTS_fmri_preproc/tree/main/TUT/05_full_pipeline)
 
-Create a data structure suitable for bidscoin. Mine is shown below
+Create a data structure suitable for bidscoin. The one for the sample data of this hackaton is shown below
 
 <details><summary>PARREC data structure</summary>
 
 ```
-PARREC/
+/data03/MRI_hackaton_data/PARREC/
 ├── sub-gutsaumc0010
 │   └── ses-01
 │       ├── sub-gutsaumc0010_ses-01_T1w_6_1.PAR
@@ -106,7 +105,8 @@ Choose which `dcm2niix` will be used by bidscoin
 export dcm2niix="/usr/local/fsl/bin/dcm2niix"
 ```
 
-Install `bidscoin`
+Install `bidscoin` in a venv
+
 ```bash
 # cd to the location in data00 where you want to store your venv
 python3 -m venv venv_MRI_hackaton
@@ -114,7 +114,7 @@ source venv_MRI_hackaton/bin/activate
 pip install bidscoin
 ```
 
-Once the venv is activated, `cd` to the dir where your `PARREC` dir it and start the bidsmapper. I would suggest to use only a few subs for the bidsmapper (5-10) since otherwise it takes lots of time.
+Once the venv is activated, `cd` to the dir where your `PARREC` dir is and start the bidsmapper. I would suggest to use only a few subs for the bidsmapper (5-10) since otherwise it takes lots of time.
 
 `bidsmapper PARREC/ bids/`
 
@@ -178,8 +178,10 @@ n_parallel_processes=10
 
 find bids -type f -name "*T1w*nii.gz" | xargs -n 1 -P ${n_parallel_processes} pydeface
 
-## runnin with nohup guarantees that it will not stop if for some reason your session disconnects. 
-## tmux is an even better option (to be explored)
+# runnin with nohup guarantees that it will not stop 
+# if for some reason your session disconnects 
+# tmux is an even better option (to be explored)
+
 # nohup bash -c 'find bids -type f -name "*T1w*nii.gz" | xargs -n 1 -P ${n_parallel_processes} pydeface' > deface.log 2>&1 &
 ```
 
@@ -213,6 +215,7 @@ The idea of running synthstrip now is to prepare in case fmriprep returns an uns
 <br>
 
 
+
 **NB**: since our data is on windoze drives, we need to change one detail in the `synthstrip-docker` provided on the website:
 
 ```bash
@@ -221,32 +224,39 @@ The idea of running synthstrip now is to prepare in case fmriprep returns an uns
 user = ""  # instead of '-u %s:%s' % (os.getuid(), os.getgid())
 ```
 
-To do them in parallel, there are several ways. Here's one very concise one using a temporary file for the T1s to be skull stripped.
+To do them in parallel, there are several ways. Here's one very concise one using a temporary file for the T1s to be skull stripped. Note that it is designed to have the same effect over re-runs (idempotency, a good practice).
+
 
 ```bash
 bids_root="/data03/MRI_hackaton_data/Data_collection/bids"
 
-find "${bids_root}" -type f -name "*T1w.nii.gz" > T1s_to_strip.txt
-
 n_parallel_processes=10
 
-xargs -a T1s_to_strip.txt -P "${n_parallel_processes}" -I {} bash -c '
+# Exclude *ORIG_T1w.nii.gz so re-runs don't reprocess the backup
+find "${bids_root}" -type f -name "*T1w.nii.gz" ! -name "*ORIG*" > T1s_list.txt
+
+xargs -a T1s_list.txt -P ${n_parallel_processes} -I {} bash -c '
     f="{}"
-    out_img="${f/.nii.gz/_brain.nii.gz}"
-    out_mask="${f/.nii.gz/_brain_mask.nii.gz}"
+
+    # Make a cp of the original T1w (only first pass)
+    ORIG="${f/T1w.nii.gz/ORIG_T1w.nii.gz}"
+    [ ! -f "${ORIG}" ] && cp "${f}" "${ORIG}"
+
+    out_img="${ORIG/.nii.gz/_brain.nii.gz}"
+    out_mask="${ORIG/.nii.gz/_brain_mask.nii.gz}"
 
     ./synthstrip-docker-mod.sh \
-        -i "$f" \
-        -o "$out_img" \
-        -m "$out_mask" \
+        -i "${ORIG}" \
+        -o "${out_img}" \
+        -m "${out_mask}" \
         -t 10 \
         --no-csf
-' # <- note the closing high quote
+' # <- note the closing quote
 
-rm T1s_to_strip.txt
+rm T1s_list.txt
 ```
 
-Now you can use the fantastic [niivue plugin for VS code](https://marketplace.visualstudio.com/items?itemName=KorbinianEckstein.niivue) to inspect the results of the skull stripping
+Now you can use the [niivue plugin for VS code](https://marketplace.visualstudio.com/items?itemName=KorbinianEckstein.niivue) to inspect the results of the skull stripping
 
 ![](./procedures/assets/niivue.png)
 
@@ -257,8 +267,8 @@ To generate confounds.tsv file + registration and fmri 4D in MNI using ANTs.
 
 The procedure is described in details in the [fmriprep.md](./procedures/fmriprep.md) document.
 
-# 05. Additional confounds generation
-Generate sin/cosine predictors as temporal filtering step (those generated by fmriprep have a specific frequency)
+# 05. Additional confounds generation (cosine basis)
+Generate cosine predictors as temporal filtering step (those generated by fmriprep have a specific frequency)
 
 The procedure is carried out using `scripts/make_cosine_basis.py`, which can be run in parallel for all confounds tsv files generated by fmriprep (it's very fast) using xargs. It is described in [cosine_HP_filter.md](./procedures/cosine_HP_filter.md).
 
@@ -301,7 +311,7 @@ In parallel across subjects using `scripts/list_subj.txt` (one line = one subjec
 
 ```bash
 export deriv_dir="/data03/MRI_hackaton_data/Data_collection/fmriprep"
-n_parallel=5  # desired number of parallel processes
+n_parallel=10  # desired number of parallel processes
 list_subj="/data00/MRI_hackaton/scripts/list_subj.txt"
 
 xargs -a "${list_subj}" -n1 -P${n_parallel} -I{} bash -c '
@@ -356,7 +366,7 @@ docker run --rm \
 
 ```bash
 export FWHM=6          # desired smoothing kernel in mm
-export n_parallel=5
+export n_parallel=10
 export deriv_dir="/data03/MRI_hackaton_data/Data_collection/fmriprep"
 list_subj="/data00/MRI_hackaton/scripts/list_subj.txt"
 
@@ -410,6 +420,35 @@ Now open the same port on the VS code connected to storm.
 
 Finally, open a browser and visit `localhost:9876`
 
+## Templateflow
+Templateflow has been installed in `/data00/templateflow` and the actual MNI templates are in `MNI_templates`. 
+
+It requires datalad and git-annex, which I installed with apt-get (installing with pip runs in an old-version conflict between the two). Below is the procedure, for the record, but they are already there.
+
+You can use the lines below to download new template. Just replace the value of `template="[desired template]"`.  Check which templates are already available in `/data00/MNI_templates` before downloading them again.
+
+```bash
+# INSTALLATION OF GIT-ANNEX AND TEMPLATE FLOW ALREADY DONE
+# sudo needs to install git annex in advance (done)
+# sudo apt update
+# sudo apt install git-annex
+# sudo apt-get install datalad
+# cd /data00
+# datalad install -r ///templateflow
+
+# now download the template you want
+cd /data00/templateflow
+
+template="tpl-MNI152NLin2009cAsym"
+
+datalad get -r ${template}
+
+# you only get the links, so now you need to get the files
+source="/data00/templateflow/${template}/"
+destination="/data00/MNI_templates/${template}/"
+rsync -aL  ${source} ${destination}
+```
+
 
 ## Add user to docker
 ```bash
@@ -423,3 +462,10 @@ dest="/data03/MRI_hackaton_data/Data_collection/PARREC"
 
 xargs -a list_subj.txt -n 1 -P 10 -I {} rsync -av --progress "$orig/{}/" "$dest/{}/"
 ```
+
+
+# Abbreviations
+- venv : python virtual environment
+- dir : directory, folder
+- sub : subject
+- sw : software

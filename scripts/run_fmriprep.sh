@@ -45,6 +45,9 @@ FREESURFER_HOME="/usr/local/freesurfer"
 nprocs=5
 omp-nthreads=3
 
+# ── MNI target resolution 1/2/3 mm ───────────────────────────────────
+MNI_res=2
+
 
 echo "=== fMRIprep started: $(date) ==="
 
@@ -57,7 +60,7 @@ fmriprep-docker \
     --no-tty \
     --fs-no-reconall \
     --fs-license-file ${FREESURFER_HOME}/license.txt \
-    --output-spaces MNI152NLin2009cAsym:res-2 \
+    --output-spaces MNI152NLin2009cAsym:res-${MNI_res} \
     --fd-spike-threshold 0.5 \
     --dvars-spike-threshold 1.5 \
     --ignore slicetiming \
