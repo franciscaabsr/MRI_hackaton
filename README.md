@@ -27,10 +27,43 @@ Where to store the preprocessed data? For the time being, we will choose to keep
 
 
 # Environment setup
-- Make sure fsl is in the `$PATH`
-  - `which fsl`
-  - if it's not in the path, you need to add the following to yourr `~/.bashrc` file
-  - `ls -lha` is better than `ls`, and `tree` is also very useful to see the structure of subfolders
+
+## VS code
+Make sure you have installed [VS code](https://code.visualstudio.com/) on your laptop
+
+## ssh key
+Make sure that you have: 
+- an ssh key in your `.ssh` folder 
+- already added the **public** key to the `.ssh/authorized_keys` on storm
+- a `config` file in your local `.ssh` folder with the info to connect to storm (see below for an example)
+
+```bash
+# local (i.e. your laptop)
+$ cd .ssh
+~/.ssh
+$ ls -lha
+total 48
+-rw-r--r--@  1 leonardo  staff   103B Jan  7  2025 config
+-rw-------   1 leonardo  staff   3.3K Jan  7  2025 id_rsa
+-rw-r--r--   1 leonardo  staff   747B Jan  7  2025 id_rsa.pub
+
+~/.ssh
+$ cat config 
+Host storm
+    HostName storm.herseninstituut.knaw.nl
+    User cerliani
+    IdentityFile ~/.ssh/id_rsa
+
+# remote (i.e. on storm)
+leonardo@storm:~/.ssh$ cat authorized_keys 
+ssh-rsa AAAAB3Nz ... 8o+lFyI4qfPWQ== sbl_terminal_tut@itanos.local
+```
+
+## fsl
+Make sure fsl is in the `$PATH`
+- `which fsl`
+- if it's not in the path, you need to add the following to yourr `~/.bashrc` file
+- `ls -lha` is better than `ls`, and `tree` is also very useful to see the structure of subfolders
 
 ```bash
 FSLDIR=/usr/local/fsl
@@ -40,29 +73,51 @@ export FSLDIR PATH
 . ${FSLDIR}/etc/fslconf/fsl.sh
 ```
 
-- Make sure `pydeface` is installed (`which pydeface`) should be not null
+## pydeface
+Make sure `pydeface` is installed (`which pydeface`) should be not null
 
-- Make sure you are in the docker group
+## docker
+Make sure you are in the docker group
   - giving the command `id` from the terminal would show you which groups you are in. Make sure that there is also `docker` among them, otherwise ask me.
 
+## niivue plugin for VS code
 - Install the [niivue plugin for VS code](https://marketplace.visualstudio.com/items?itemName=KorbinianEckstein.niivue)
   - This allows inspecting the images on storm (and to add overlays!) directly from your local VS code
 
-- Learn the very basic of python virtual environments (hereafter venv). 
-  - We will (try to) use one single venv that you will store in your project folder on `data00`. For the present code, it is at `/data00/MRI_hackaton/scripts/venv_MRI_hackaton`
-  - Whenever you install something new in your venv, make sure (after testing) that you export it to a `requirements.txt` file so that it will stay in the github repo, and whoever clones it will know how to reproduce your analyses with the same python packages.
-    - This can be simply achieved by issuing the following once the venv is activated: `pip freeze -r requirements.txt`
+## python virtual environments
+Learn the very basic of python virtual environments (hereafter venv). 
 
-- Learn the very basic of github (`git add/commit/push`)
-  - and especially get used to the `.gitignore` file. For instance, we will store all the directories (hereafter dirs) with python virtual environments in there (`venv*/`) 
+```bash
+# e.g. for a virtual environment called venv_MRI_hackaton
+python -m venv venv_MRI_hackaton
 
-- Not really necessary, but make life easier
-  - use `batcat` instead of `cat` (`alias cat='batcat -p'`)
-  - use `btop` instead of `top` (`/usr/bin/btop`)
-  - `tmux`?
+# to activate (then shown in the prompt)
+source venv_MRI_hackaton/bin/activate
+
+# now you can pip install inside the venv
+
+# to deactivate
+deactivate
+```
+
+We will (try to) use one single venv that you will store in your project folder on `data00`. For the present code, it is at `/data00/MRI_hackaton/scripts/venv_MRI_hackaton`
+
+Whenever you install something new in your venv, make sure (after testing) that you export it to a `requirements.txt` file so that it will stay in the github repo, and whoever clones it will know how to reproduce your analyses with the same python packages.
+
+This can be simply achieved by issuing the following once the venv is activated: `pip freeze -r requirements.txt`
+
+## Github
+Learn the very basic of github (`git add/commit/push`)
+
+Especially, get used to the `.gitignore` file. For instance, we will store all the directories (hereafter dirs) with python virtual environments in there (`venv*/`) 
+
+## Utilities that make life easier
+- use `batcat` instead of `cat` (`alias cat='batcat -p'`)
+- use `btop` instead of `top` (`/usr/bin/btop`)
+- `tmux`?
 
 
-
+<br>
 
 # 01. Bidsification with bidscoin
 [ref to GUTs tut 05_full_pipeline](https://github.com/leonardocerliani/GUTS_fmri_preproc/tree/main/TUT/05_full_pipeline)
