@@ -29,7 +29,7 @@ Where to store the preprocessed data? For the time being, we will choose to keep
 # Environment setup
 
 ## VS code
-Make sure you have installed [VS code](https://code.visualstudio.com/) on your laptop
+We will work mostly inside VS code and in the terminal, therefore make sure you have installed [VS code](https://code.visualstudio.com/) on your laptop.
 
 ## ssh key
 Make sure that you have: 
@@ -47,6 +47,9 @@ total 48
 -rw-------   1 leonardo  staff   3.3K Jan  7  2025 id_rsa
 -rw-r--r--   1 leonardo  staff   747B Jan  7  2025 id_rsa.pub
 
+# if you do not have the files above, you can create them with
+# ssh-keygen -t rsa -b 4096
+
 ~/.ssh
 $ cat config 
 Host storm
@@ -58,6 +61,10 @@ Host storm
 leonardo@storm:~/.ssh$ cat authorized_keys 
 ssh-rsa AAAAB3Nz ... 8o+lFyI4qfPWQ== sbl_terminal_tut@itanos.local
 ```
+
+## github account
+Make sure you have also created an `.ssh` key in your `~/.ssh` folder on storm, and have uploaded the **public** key to your github account, so that you can push repos modifications to remote. If you do not have the files above, you can create them with `ssh-keygen -t rsa -b 4096` inside the `~/.ssh` folder.
+
 
 ## fsl
 Make sure fsl is in the `$PATH`
@@ -111,11 +118,26 @@ Learn the very basic of github (`git add/commit/push`)
 
 Especially, get used to the `.gitignore` file. For instance, we will store all the directories (hereafter dirs) with python virtual environments in there (`venv*/`) 
 
+
 ## Utilities that make life easier
 - use `batcat` instead of `cat` (`alias cat='batcat -p'`)
 - use `btop` instead of `top` (`/usr/bin/btop`)
 - `tmux`?
 
+
+<br>
+
+
+# 00. Set up the hackaton folder in /data00 and clone your fork of the github repo
+- Fork [the hackaton repo](https://github.com/leonardocerliani/MRI_hackaton) in your github account
+- Go on storm, in `/data00/[your name]` and clone the _forked_ repo from your account (i.e. _not_ the one above)
+  - make sure you use the SSH option to clone it 
+
+It should look something like this:
+
+```bash
+git clone git@github.com:leonardocerliani/MRI_hackaton.git
+```
 
 <br>
 
